@@ -1,0 +1,26 @@
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# OS / editor files
+.DS_Store
+.idea/
+.vscode/
+
+# Python packaging
+build/
+dist/
+*.egg-info/
+
+# Checkpoints / models
+model/
+
+# Plot images or logs (if you add them later)
+logs/
+*.png
+
