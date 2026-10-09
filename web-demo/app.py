@@ -92,4 +92,11 @@ with gr.Blocks(title="Deep-Q Snake — Live Demo") as demo:
 
 
 if __name__ == "__main__":
-    demo.queue().launch()
+    import os
+
+    # Bind to 0.0.0.0 and the host-provided $PORT so this works on Render /
+    # other PaaS free tiers as well as locally (defaults to 7860).
+    demo.queue().launch(
+        server_name="0.0.0.0",
+        server_port=int(os.environ.get("PORT", 7860)),
+    )

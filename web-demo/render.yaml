@@ -1,0 +1,12 @@
+# Render Blueprint — deploy the Deep-Q Snake demo on Render's free tier.
+# Docs: https://render.com/docs/blueprint-spec
+# Note: rootDir assumes this repo is deployed as-is; the app lives in web-demo/.
+services:
+  - type: web
+    name: deep-q-snake
+    runtime: python
+    plan: free                       # 512 MB RAM, 750 instance-hours/month, sleeps after 15 min idle
+    rootDir: web-demo
+    buildCommand: pip install -r requirements.txt
+    startCommand: python app.py      # binds 0.0.0.0:$PORT automatically
+    autoDeploy: true

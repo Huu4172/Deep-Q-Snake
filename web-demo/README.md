@@ -1,8 +1,7 @@
 # Web Demo — Deep-Q Snake (browser-viewable)
 
-A live, browser-viewable version of this project, deployable **free** on
-Hugging Face Spaces. Visitors click **Watch AI Play** and the trained
-`model/model.pth` network drives the snake in real time.
+A live, browser-viewable version of this project. Visitors click **Watch AI
+Play** and the trained `model/model.pth` network drives the snake in real time.
 
 The original project renders with **pygame**, which opens a desktop window and
 needs a display — so it can't run on a headless web host as-is. This demo keeps
@@ -23,8 +22,10 @@ red food, score/gen/length HUD) but viewable by anyone over a URL.
 | `model.py` | `Linear_QNet` architecture (inference only) |
 | `model/model.pth` | Trained weights (copied from the repo root `model/`) |
 | `requirements.txt` | CPU-only torch, numpy<2, pillow, gradio |
-| `DEPLOY.md` | Step-by-step Hugging Face Spaces deployment guide |
-| `README_SPACE.md` | README with the HF Spaces YAML header (use as the Space's README) |
+| `DEPLOY.md` | Step-by-step deployment guide |
+| `FREE_TIER.md` | Free-tier hosting options and their limits (read first) |
+| `render.yaml` | Render Blueprint for one-click free-tier deploy |
+| `README_SPACE.md` | README with the HF Spaces YAML header (only if using HF) |
 
 ## Run locally
 ```bash
@@ -35,10 +36,15 @@ python app.py            # open http://127.0.0.1:7860
 ```
 
 ## Deploy (free)
-See [`DEPLOY.md`](./DEPLOY.md). Summary: create a free Hugging Face Space
-(Gradio SDK, CPU-basic free tier), upload the contents of this folder
-(renaming `README_SPACE.md` to `README.md` on the Space), and it goes live at
-`https://huggingface.co/spaces/<username>/deep-q-snake`.
+See [`FREE_TIER.md`](./FREE_TIER.md) for the options and their limits, and
+[`DEPLOY.md`](./DEPLOY.md) for step-by-step instructions.
+
+**Short version:** Hugging Face Spaces is **no longer free** for a Gradio app on
+a personal account (it now requires PRO). The genuinely free paths are:
+- **Render** free web service → permanent URL, but sleeps after 15 min idle
+  (~1 min cold start). Recommended.
+- **Local + `launch(share=True)`** → instant temporary `*.gradio.live` URL
+  (~72h, your machine must stay on).
 
 ## Notes
 - The original `game.py`, `agent.py`, `model.py`, `helper.py` at the repo root

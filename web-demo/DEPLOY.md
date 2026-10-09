@@ -1,98 +1,108 @@
-# Deploy the Deep-Q Snake demo to Hugging Face Spaces (free)
+# Deploy the Deep-Q Snake demo
 
 The demo lives in this `web-demo/` folder and is a self-contained Gradio app:
 
 ```
 web-demo/
-├── app.py            # Gradio UI, streams AI gameplay
+├── app.py            # Gradio UI, streams AI gameplay (binds 0.0.0.0:$PORT)
 ├── snake_game.py     # headless Snake simulation + state encoding
 ├── renderer.py       # Pillow frame renderer (original dark theme)
 ├── model.py          # Linear_QNet architecture (inference only)
 ├── model/model.pth   # trained weights
 ├── requirements.txt
-├── README.md         # this folder's readme (repo view)
-└── README_SPACE.md   # README WITH the HF Spaces YAML header — use this on the Space
+├── render.yaml       # Render Blueprint (free-tier web service)
+├── README.md         # this folder's readme
+├── README_SPACE.md   # README WITH the HF Spaces YAML header (if deploying to HF)
+├── FREE_TIER.md      # free-tier options and their limits (read this first)
+└── DEPLOY.md         # this file
 ```
 
-Hugging Face Spaces free tier (CPU Basic: 2 vCPU / 16 GB RAM) is plenty — the
-model is tiny (~17 KB) and runs on CPU.
-
-> Important: a Hugging Face Space needs a `README.md` whose first lines are the
-> YAML config header. In this repo that header lives in `README_SPACE.md` (to
-> avoid clashing with the folder's own readme). **When you deploy, rename
-> `README_SPACE.md` to `README.md` on the Space.**
+> 💡 **Read [`FREE_TIER.md`](./FREE_TIER.md) first.** It explains which options
+> are genuinely free and their limits. In short: **Hugging Face Spaces is no
+> longer free for a Gradio app on a personal account** (it now needs PRO). The
+> free paths are **Render** (permanent URL, cold starts) or **local +
+> `share=True`** (temporary URL).
 
 ---
 
-## Option A — Deploy from the website (easiest, no CLI)
+## Option 1 — Render free web service  ✅ recommended free path
 
-1. Create a free account at https://huggingface.co/join.
-2. Go to https://huggingface.co/new-space.
-3. Fill in:
-   - **Owner:** your username
-   - **Space name:** e.g. `deep-q-snake`
-   - **License:** MIT
-   - **SDK:** select **Gradio**
-   - **Hardware:** **CPU basic — Free**
-   - **Visibility:** Public
-4. Click **Create Space**.
-5. On the new Space page, open the **Files** tab → **Add file** → **Upload files**,
-   and upload the contents of this `web-demo/` folder, keeping the
-   `model/model.pth` path (create the `model` folder by typing `model/model.pth`
-   as the path when uploading). Upload: `app.py`, `snake_game.py`, `renderer.py`,
-   `model.py`, `requirements.txt`, `model/model.pth`, and `README_SPACE.md`
-   **renamed to `README.md`**.
-6. The Space builds automatically. After a few minutes the status turns
-   **Running** and your public URL is:
-   `https://huggingface.co/spaces/<your-username>/deep-q-snake`
-7. Open it, click **▶ Watch AI Play**. Done — share that URL with anyone.
+Free tier: 512 MB RAM, 750 instance-hours/month, **spins down after 15 min idle**
+(≈1 min cold start on the next visit). Enough for this tiny CPU model.
 
----
+### A) One-click via the included Blueprint
+1. Push this repo to **your own GitHub** (fork or your copy).
+2. Go to https://render.com → sign up (free) → **New → Blueprint**.
+3. Connect the repo. Render reads `web-demo/render.yaml` and provisions a free
+   web service automatically.
+4. When the build finishes, your public URL is
+   `https://deep-q-snake-XXXX.onrender.com`.
 
-## Option B — Deploy with Git (recommended for updates)
+### B) Manual (no Blueprint)
+1. Push the repo to your GitHub.
+2. Render → **New → Web Service** → connect the repo.
+3. Settings:
+   - **Root Directory:** `web-demo`
+   - **Runtime:** Python 3
+   - **Build Command:** `pip install -r requirements.txt`
+   - **Start Command:** `python app.py`
+   - **Instance Type:** **Free**
+4. Create → wait for the build → open the generated URL.
 
-Requires: a free HF account and a Hugging Face access token
-(https://huggingface.co/settings/tokens — create one with **write** access).
-
-```bash
-# 1. Install the HF CLI and log in
-pip install -U huggingface_hub
-huggingface-cli login        # paste your write token
-
-# 2. Create the Space (one time)
-huggingface-cli repo create deep-q-snake --type space --space_sdk gradio
-
-# 3. Clone the (empty) Space repo somewhere separate
-git clone https://huggingface.co/spaces/<your-username>/deep-q-snake
-cd deep-q-snake
-
-# 4. Copy the demo files in (run from the root of this repo clone)
-cp -r /path/to/Deep-Q-Snake/web-demo/{app.py,snake_game.py,renderer.py,model.py,requirements.txt} .
-mkdir -p model
-cp /path/to/Deep-Q-Snake/web-demo/model/model.pth model/
-cp /path/to/Deep-Q-Snake/web-demo/README_SPACE.md README.md   # header README
-
-# 5. Push
-git add .
-git commit -m "Deep-Q Snake live Gradio demo"
-git push
-```
-
-The Space rebuilds on every push. Watch the **Logs** tab for build progress;
-when it says **Running**, your public URL is live.
-
-> `model.pth` is only ~17 KB so plain Git is fine (no Git LFS needed).
+`app.py` already binds `0.0.0.0` and the `$PORT` env var Render provides, so no
+extra config is needed.
 
 ---
 
-## Run locally first (optional sanity check)
+## Option 2 — Local + temporary public link  ✅ free, instant, no deploy
+
+Fastest way to show someone right now (your machine must stay on; link lasts ~72h):
 
 ```bash
 cd web-demo
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python app.py
-# open http://127.0.0.1:7860
+# then launch with a share link:
+python -c "import app; app.demo.queue().launch(share=True)"
+```
+Gradio prints a public `https://xxxx.gradio.live` URL.
+
+---
+
+## Option 3 — Hugging Face Space (requires PRO, ~$9/mo — not free)
+
+Only do this if you have **HF PRO** (a Gradio Space on a free personal account is
+no longer allowed; see `FREE_TIER.md`). On PRO, the **CPU Basic** hardware is
+$0/hr.
+
+1. https://huggingface.co/new-space → SDK **Gradio**, Hardware **CPU basic**, Public.
+2. Upload the contents of this `web-demo/` folder, keeping the `model/model.pth`
+   path, and rename `README_SPACE.md` → `README.md` on the Space (it carries the
+   required YAML header).
+3. The Space builds; when it shows **Running**, the URL is
+   `https://huggingface.co/spaces/<username>/deep-q-snake`.
+
+Git-based alternative:
+```bash
+pip install -U huggingface_hub
+huggingface-cli login
+huggingface-cli repo create deep-q-snake --type space --space_sdk gradio
+git clone https://huggingface.co/spaces/<username>/deep-q-snake && cd deep-q-snake
+cp -r /path/to/web-demo/{app.py,snake_game.py,renderer.py,model.py,requirements.txt} .
+mkdir -p model && cp /path/to/web-demo/model/model.pth model/
+cp /path/to/web-demo/README_SPACE.md README.md
+git add . && git commit -m "Deep-Q Snake Gradio demo" && git push
+```
+
+---
+
+## Run locally (sanity check, no public link)
+
+```bash
+cd web-demo
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python app.py          # http://127.0.0.1:7860
 ```
 
 ---
@@ -100,10 +110,11 @@ python app.py
 ## Troubleshooting
 
 - **Build fails on torch:** the `--extra-index-url .../cpu` line in
-  `requirements.txt` pulls the CPU-only wheel, which is smaller and correct for
-  the free CPU tier. Keep it.
+  `requirements.txt` pulls the CPU-only wheel (smaller, correct for free CPU tiers).
 - **NumPy ABI error:** `numpy<2` is pinned on purpose (torch 2.2.2 needs NumPy 1.x).
-- **Snake plays randomly:** means `model/model.pth` wasn't uploaded to the
-  `model/` subfolder. Re-check the file path on the Space.
-- **Space sleeps after inactivity:** free Spaces pause when idle and wake on the
-  next visit (a few seconds to resume). This is normal for the free tier.
+- **Snake plays randomly:** `model/model.pth` wasn't deployed to the `model/`
+  subfolder — check the path.
+- **Render: first visit is slow (~1 min):** expected — the free service was
+  asleep and is waking up. Subsequent requests are fast.
+- **512 MB memory on Render:** fine for this model. If you ever hit a limit from
+  heavier torch builds, the CPU-only wheel (already pinned) keeps the footprint down.
