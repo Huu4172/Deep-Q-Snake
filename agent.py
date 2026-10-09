@@ -2,9 +2,9 @@ import torch
 import random 
 import numpy as np
 from collections import deque
-from game import SnakeGameAI, Direction, Point
+from game import SnakeGameAI, Direction, Point, StopTrainingException, TARGET_FPS
 from model import Linear_QNet, QTrainer
-from helper import plot
+# Lazy-import helper when training stops so matplotlib does not init at startup (fixes pygame conflicts / stuck red overlay on some systems).
 
 
 MAX_MEMORY = 100_000
@@ -27,6 +27,8 @@ class Agent():
             print("Loaded existing model weights from checkpoint.")
         else:
             print("No existing checkpoint found. Starting with a new model.")
+        # Checkpoint load uses eval(); switch back for Q-learning updates.
+        self.model.train()
 
 
     def get_state(self, game):
@@ -89,7 +91,8 @@ class Agent():
             mini_sample = self.memory
         
         states, actions, rewards, next_states, dones = zip(*mini_sample)
-        self.trainer.train_step(states, actions, rewards, next_states, dones)
+        loss = self.trainer.train_step(states, actions, rewards, next_states, dones)
+        return loss
 
     def train_short_memory(self, state, action, reward, next_state, done):
         self.trainer.train_step(state, action, reward, next_state, done)
@@ -113,54 +116,73 @@ class Agent():
 def train():
     plot_scores = []
     plot_mean_scores = []
+    mse_history = []
+    episode_rewards = []
     total_score = 0
     record = 0
     agent = Agent()
     game = SnakeGameAI()
+    episode_reward = 0
 
-    while True:
-        # get the old state 
-        state_old = agent.get_state(game)
+    try:
+        while True:
+            # get the old state 
+            state_old = agent.get_state(game)
 
-        # get the move
-        final_move = agent.get_action(state_old)
+            # get the move
+            final_move = agent.get_action(state_old)
 
-        # perform move and get a new state
+            # perform move and get a new state
 
-        reward, done, score = game.play_step(final_move)
+            reward, done, score = game.play_step(final_move)
+            episode_reward += reward
 
-        # getting the new state
-        state_new = agent.get_state(game)
+            # getting the new state
+            state_new = agent.get_state(game)
 
-        # train short memory
-        agent.train_short_memory(state_old, final_move, reward, state_new, done)
+            # train short memory
+            agent.train_short_memory(state_old, final_move, reward, state_new, done)
 
-        # remember all of this
-        agent.remember(state_old, final_move, reward, state_new, done)
+            # remember all of this
+            agent.remember(state_old, final_move, reward, state_new, done)
 
-        if done:
-            # train the long memory and also will plot the result
+            if done:
+                # train the long memory and also will plot the result
 
-            game.reset()
-            agent.num_games += 1
+                game.reset()
+                agent.num_games += 1
 
-            agent.train_long_memory()
+                loss = agent.train_long_memory()
 
-            if score > record:
-                record = score
-                agent.model.save()
+                if score > record:
+                    record = score
+                    agent.model.save()
 
-            if agent.num_games % SAVE_EVERY_N_GAMES == 0:
-                agent.model.save()
-                print(f"Checkpoint saved at game {agent.num_games}")
+                if agent.num_games % SAVE_EVERY_N_GAMES == 0:
+                    agent.model.save()
+                    print(f"Checkpoint saved at game {agent.num_games}")
 
-            print('Game : ', agent.num_games, 'Score : ', score, 'Record : ', record)
+                print('Game : ', agent.num_games, 'Score : ', score, 'Record : ', record, 'MSE : ', loss)
 
-            #plot_scores.append(score)
-            #total_score += score
-            #mean_score = total_score / agent.num_games
-            #plot_mean_scores.append(mean_score)
-            #plot(plot_scores, plot_mean_scores)
+                # tracking for plots
+                plot_scores.append(score)
+                total_score += score
+                mean_score = total_score / agent.num_games
+                plot_mean_scores.append(mean_score)
+                episode_rewards.append(episode_reward)
+                mse_history.append(loss)
+
+                # reset for next episode
+                episode_reward = 0
+
+            # Pace the whole step (env + draw + PyTorch) for smooth motion; tick after ML so
+            # heavy train_short_memory is included in the frame budget.
+            game.clock.tick(TARGET_FPS)
+    except (KeyboardInterrupt, StopTrainingException):
+        print("\nTraining interrupted by user. Showing final plots...")
+        from helper import show_final_plots
+
+        show_final_plots(plot_scores, plot_mean_scores, episode_rewards, mse_history)
 
 
 

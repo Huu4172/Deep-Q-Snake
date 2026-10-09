@@ -108,5 +108,7 @@ class QTrainer:
             if d:
                 self.game_count += 1
                 if self.game_count % 100 == 0:
-                    print(f"Autosaving model at game {self.game_count}")
+                    #print(f"Autosaving model at game {self.game_count}")
                     self.model.save()
+
+        return loss.item()

@@ -1,6 +1,5 @@
 __pycache__/
 *.py[cod]
-*.pyo
 
 # Virtual environments
 .venv/
@@ -12,15 +11,10 @@ env/
 .idea/
 .vscode/
 
-# Python packaging
-build/
-dist/
-*.egg-info/
+# Arial is a licensed Microsoft font and can't be redistributed.
+# game.py loads it from this folder; app.py substitutes a free font when it's missing.
+arial.ttf
 
-# Checkpoints / models
-model/
-
-# Plot images or logs (if you add them later)
+# Plot images / logs
 logs/
 *.png
-
