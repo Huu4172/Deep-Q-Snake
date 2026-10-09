@@ -27,16 +27,23 @@ Service**. This is the most straightforward genuinely-free route today.
 **Free tier specs & limits** (source: https://render.com/docs/free):
 | Item | Limit |
 |------|-------|
-| Instance | 0.1 CPU / **512 MB RAM** |
+| Instance | **0.1 CPU / 512 MB RAM** (web service `free` plan) |
 | Monthly runtime | **750 free instance hours per workspace / month** |
 | Idle behaviour | **Spins down after 15 min with no traffic**; cold start ~1 min on the next request |
 | Filesystem | Ephemeral — resets on every redeploy/restart/spin-down (fine here; the model is in the repo) |
 | Cost | $0 (not for production use) |
 
-**Does this project fit?** Yes. PyTorch CPU + Gradio runs within 512 MB for a
-model this small. The main user-visible limit is the **cold start** — if the
-Space has been idle, the first visitor waits ~1 minute while it wakes, then it's
-smooth. 750 hours/month is enough to keep one service effectively always-on.
+Specs verified against Render's official docs:
+https://render.com/docs/free and https://render.com/docs/compute-plans
+(web service `free` row = 0.1 CPU / 512 MB).
+
+**Does this project fit?** Yes, with one caveat. PyTorch CPU + Gradio runs within
+512 MB for a model this small, and inference is one tiny forward pass per frame.
+The caveats are: (1) the free plan is only **0.1 CPU**, so the cold-start import
+of PyTorch after an idle period can make the ~1-minute wake feel sluggish —
+once running, gameplay is fine; (2) a woken service stays up only while it keeps
+getting traffic, and 750 hours/month is enough to keep one service effectively
+always-on.
 
 Deploy outline (full steps in `DEPLOY.md`):
 1. Push this repo (or the `web-demo/` folder) to your own GitHub.
